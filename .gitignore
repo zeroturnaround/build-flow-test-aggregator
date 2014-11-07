@@ -1,11 +1,10 @@
 # Created by https://www.gitignore.io
 
-#!! ERROR: intell is undefined. Use list command to see defined gitignore types !!#
-
 ### Intellij ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm
 
 /*.iml
+work/
 
 ## Directory-based project format:
 .idea/
@@ -55,7 +54,8 @@ com_crashlytics_export_strings.xml
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
