@@ -47,6 +47,7 @@ public class FlowTestAggregator extends Recorder {
     return true;
   }
 
+  @Extension
   public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
   @Override
@@ -54,7 +55,6 @@ public class FlowTestAggregator extends Recorder {
     return DESCRIPTOR;
   }
 
-  @Extension
   public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
     /**
