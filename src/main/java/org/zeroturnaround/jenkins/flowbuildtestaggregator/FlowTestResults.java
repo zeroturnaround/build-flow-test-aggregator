@@ -14,7 +14,7 @@ public class FlowTestResults extends AggregatedTestResultAction {
 
   @Override
   protected String getChildName(AbstractTestResultAction tr) {
-    return tr.owner.getProject().getName();
+    return tr.owner.getProject().getFullName();
   }
 
   @Override
