@@ -37,7 +37,7 @@ THE SOFTWARE.
         <j:forEach var="report" items="${it.childReports}">
           <tr>
             <td class="pane">
-              <a href="${rootURL}/${report.child.url}testReport">${report.child.project.name}</a>
+              <a href="${rootURL}/${report.child.url}testReport">${report.child.project.fullDisplayName}</a>
             </td>
             <td data="${report.result.duration}" class="pane" style="text-align:right">
               ${report.result.durationString}
