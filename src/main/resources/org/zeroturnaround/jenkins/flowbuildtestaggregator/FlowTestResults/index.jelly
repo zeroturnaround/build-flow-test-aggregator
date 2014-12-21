@@ -83,10 +83,10 @@ THE SOFTWARE.
                 <td class="pane">
                   <a href="${rootURL}/${report.child.url}testReport/${f.getRelativePathFrom(report.result)}">
                     <st:out value="${f.fullName}"/>
-		          	<st:nbsp/>
-			        <j:forEach var="badge" items="${f.testActions}">
-			          <st:include it="${badge}" page="badge.jelly" optional="true"/>
-			        </j:forEach>
+                    <st:nbsp/>
+                    <j:forEach var="badge" items="${f.testActions}">
+                      <st:include it="${badge}" page="badge.jelly" optional="true"/>
+                    </j:forEach>
                   </a>
                 </td>
                 <td class="pane" style="text-align:right;">
