@@ -38,7 +38,9 @@ public class FlowTestAggregator extends Recorder {
       for (JobInvocation jobInvocation : flowRun.getJobsGraph().vertexSet()) {
         if (!jobInvocation.getClass().getName().contains("Start")) {
           TestResultAction testResult = jobInvocation.getBuild().getAction(hudson.tasks.junit.TestResultAction.class);
-          if (testResult != null) testResults.add(testResult);
+          if (testResult != null && testResult.getResult() != null) {
+            testResults.add(testResult);
+          }
         }
       }
     } catch (ExecutionException e) {
