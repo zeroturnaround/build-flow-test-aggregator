@@ -3,6 +3,7 @@ package org.zeroturnaround.jenkins.flowbuildtestaggregator;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
+import hudson.model.Run;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.cloudbees.plugins.flow.BuildFlow;
@@ -35,16 +36,28 @@ public class FlowTestAggregator extends Recorder {
     flowRun.addAction(testResults);
     listener.getLogger().println("Starting to gather test results!");
     try {
-      for (JobInvocation jobInvocation : flowRun.getJobsGraph().vertexSet()) {
-        if (!jobInvocation.getClass().getName().contains("Start")) {
-          TestResultAction testResult = jobInvocation.getBuild().getAction(hudson.tasks.junit.TestResultAction.class);
-          if (testResult != null) testResults.add(testResult);
+      aggregateResultsFromJobInvocation(flowRun.getStartJob(), testResults, listener);
+    } catch (ExecutionException e) {
+      listener.getLogger().println("ERROR: " + e.getMessage());
+    }
+    listener.getLogger().println("Gathered results from " + testResults.getChildReports().size() + " jobs" );
+    return true;
+  }
+
+  private void aggregateResultsFromJobInvocation(JobInvocation jobInvocation, FlowTestResults testResults, BuildListener listener) throws ExecutionException, InterruptedException {
+    Run run = jobInvocation.getBuild();
+    if (run instanceof FlowRun) {
+      listener.getLogger().println("Going to gather results in flow " + run);
+      for (JobInvocation jobInv : ((FlowRun) run).getJobsGraph().vertexSet()) {
+        if (!jobInv.getClass().getName().contains("Start")) {
+          aggregateResultsFromJobInvocation(jobInv, testResults, listener);
         }
       }
-    } catch (ExecutionException e) {
-      listener.getLogger().print("ERROR: " + e.getMessage());
+    } else {
+      listener.getLogger().println("Adding test result for job " + run);
+      TestResultAction testResult = run.getAction(hudson.tasks.junit.TestResultAction.class);
+      if (testResult != null) testResults.add(testResult);
     }
-    return true;
   }
 
   @Extension
