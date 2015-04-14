@@ -57,18 +57,28 @@ public class FlowTestAggregator extends Recorder {
         }
       }
     } else if (run instanceof MultiJobBuild) {
-      listener.getLogger().println("Going to gather results from multijob " + run);
-      // Results can be present at the mutlijob level as well
-      // (anyway it should not be duplicated = do not store the same results on the multijob parent and downstream builds)
-      addTestResultFromBuild(run, testResults, listener);
-      // only results from first level SubBuilds are collected
-      for (MultiJobBuild.SubBuild subBuild : ((MultiJobBuild) run).getSubBuilds()) {
-        AbstractProject project = (AbstractProject) Jenkins.getInstance().getItem(subBuild.getJobName());
-        Run build = project.getBuildByNumber(subBuild.getBuildNumber());
-        addTestResultFromBuild(build, testResults, listener);
-      }
+      aggregateResultsFromMultijob((MultiJobBuild) run, testResults, listener);
     } else {
       addTestResultFromBuild(run, testResults, listener);
+    }
+  }
+
+  private void aggregateResultsFromMultijob(MultiJobBuild multijob, FlowTestResults testResults, BuildListener listener) throws ExecutionException, InterruptedException {
+    listener.getLogger().println("Going to gather results from multijob " + multijob);
+    // Results can be present at the mutlijob level as well
+    // (anyway it should not be duplicated = do not store the same results on the multijob parent and downstream builds)
+    addTestResultFromBuild(multijob, testResults, listener);
+    // only results from first level SubBuilds are collected
+    for (MultiJobBuild.SubBuild subBuild : multijob.getSubBuilds()) {
+      AbstractProject project = (AbstractProject) Jenkins.getInstance().getItem(subBuild.getJobName());
+      Run build = project.getBuildByNumber(subBuild.getBuildNumber());
+      if (build instanceof MultiJobBuild) {
+        aggregateResultsFromMultijob((MultiJobBuild) build, testResults, listener);
+      } else if (build instanceof FlowRun) {
+        aggregateResultsFromJobInvocation(((FlowRun) build).getStartJob(), testResults, listener);
+      } else {
+        addTestResultFromBuild(build, testResults, listener);
+      }
     }
   }
 
