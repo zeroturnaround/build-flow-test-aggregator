@@ -3,7 +3,10 @@ package org.zeroturnaround.jenkins.flowbuildtestaggregator;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
+import com.tikal.jenkins.plugins.multijob.MultiJobBuild;
+import hudson.model.AbstractProject;
 import hudson.model.Run;
+import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.cloudbees.plugins.flow.BuildFlow;
@@ -53,10 +56,27 @@ public class FlowTestAggregator extends Recorder {
           aggregateResultsFromJobInvocation(jobInv, testResults, listener);
         }
       }
+    } else if (run instanceof MultiJobBuild) {
+      listener.getLogger().println("Going to gather results from multijob " + run);
+      // Results can be present at the mutlijob level as well
+      // (anyway it should not be duplicated = do not store the same results on the multijob parent and downstream builds)
+      addTestResultFromBuild(run, testResults, listener);
+      // only results from first level SubBuilds are collected
+      for (MultiJobBuild.SubBuild subBuild : ((MultiJobBuild) run).getSubBuilds()) {
+        AbstractProject project = (AbstractProject) Jenkins.getInstance().getItem(subBuild.getJobName());
+        Run build = project.getBuildByNumber(subBuild.getBuildNumber());
+        addTestResultFromBuild(build, testResults, listener);
+      }
     } else {
-      listener.getLogger().println("Adding test result for job " + run);
-      TestResultAction testResult = run.getAction(hudson.tasks.junit.TestResultAction.class);
-      if (testResult != null) testResults.add(testResult);
+      addTestResultFromBuild(run, testResults, listener);
+    }
+  }
+
+  private void addTestResultFromBuild(Run build, FlowTestResults testResults, BuildListener listener) {
+    TestResultAction testResult = build.getAction(hudson.tasks.junit.TestResultAction.class);
+    if (testResult != null) {
+      listener.getLogger().println("Adding test result for job " + build);
+      testResults.add(testResult);
     }
   }
 
