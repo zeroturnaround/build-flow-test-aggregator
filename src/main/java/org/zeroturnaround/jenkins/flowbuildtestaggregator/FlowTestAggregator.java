@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 import com.tikal.jenkins.plugins.multijob.MultiJobBuild;
+import hudson.matrix.MatrixBuild;
+import hudson.matrix.MatrixRun;
 import hudson.model.AbstractProject;
 import hudson.model.Run;
 import jenkins.model.Jenkins;
@@ -50,7 +52,7 @@ public class FlowTestAggregator extends Recorder {
   private void aggregateResultsFromJobInvocation(JobInvocation jobInvocation, FlowTestResults testResults, BuildListener listener) throws ExecutionException, InterruptedException {
     Run run = jobInvocation.getBuild();
     if (run instanceof FlowRun) {
-      listener.getLogger().println("Going to gather results in flow " + run);
+      listener.getLogger().println("Going to gather results from flow " + run);
       for (JobInvocation jobInv : ((FlowRun) run).getJobsGraph().vertexSet()) {
         if (!jobInv.getClass().getName().contains("Start")) {
           aggregateResultsFromJobInvocation(jobInv, testResults, listener);
@@ -58,17 +60,25 @@ public class FlowTestAggregator extends Recorder {
       }
     } else if (run instanceof MultiJobBuild) {
       aggregateResultsFromMultijob((MultiJobBuild) run, testResults, listener);
+    } else if (run instanceof MatrixBuild) {
+      aggregateResultsFromMatrixJob((MatrixBuild) run, testResults, listener);
     } else {
       addTestResultFromBuild(run, testResults, listener);
     }
   }
 
+  private void aggregateResultsFromMatrixJob(MatrixBuild run, FlowTestResults testResults, BuildListener listener) {
+    listener.getLogger().println("Going to gather results from matrix run " + run);
+    for (MatrixRun matrixRun : run.getRuns()) {
+      addTestResultFromBuild(matrixRun, testResults, listener);
+    }
+  }
+
   private void aggregateResultsFromMultijob(MultiJobBuild multijob, FlowTestResults testResults, BuildListener listener) throws ExecutionException, InterruptedException {
-    listener.getLogger().println("Going to gather results from multijob " + multijob);
-    // Results can be present at the mutlijob level as well
+    listener.getLogger().println("Going to gather results from MultiJob " + multijob);
+    // Results can be present at the MultiJob level as well
     // (anyway it should not be duplicated = do not store the same results on the multijob parent and downstream builds)
     addTestResultFromBuild(multijob, testResults, listener);
-    // only results from first level SubBuilds are collected
     for (MultiJobBuild.SubBuild subBuild : multijob.getSubBuilds()) {
       AbstractProject project = (AbstractProject) Jenkins.getInstance().getItem(subBuild.getJobName());
       Run build = project.getBuildByNumber(subBuild.getBuildNumber());
