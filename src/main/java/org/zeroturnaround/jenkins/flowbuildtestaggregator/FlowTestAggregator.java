@@ -41,7 +41,7 @@ public class FlowTestAggregator extends Recorder {
     flowRun.addAction(testResults);
     listener.getLogger().println("Starting to gather test results!");
     try {
-      aggregateResultsFromJobInvocation(flowRun.getStartJob(), testResults, listener);
+      aggregateResultsFromBuild(flowRun.getStartJob().getBuild(), testResults, listener);
     } catch (ExecutionException e) {
       listener.getLogger().println("ERROR: " + e.getMessage());
     }
@@ -49,46 +49,43 @@ public class FlowTestAggregator extends Recorder {
     return true;
   }
 
-  private void aggregateResultsFromJobInvocation(JobInvocation jobInvocation, FlowTestResults testResults, BuildListener listener) throws ExecutionException, InterruptedException {
-    Run run = jobInvocation.getBuild();
-    if (run instanceof FlowRun) {
-      listener.getLogger().println("Going to gather results from flow " + run);
-      for (JobInvocation jobInv : ((FlowRun) run).getJobsGraph().vertexSet()) {
-        if (!jobInv.getClass().getName().contains("Start")) {
-          aggregateResultsFromJobInvocation(jobInv, testResults, listener);
-        }
-      }
-    } else if (run instanceof MultiJobBuild) {
-      aggregateResultsFromMultijob((MultiJobBuild) run, testResults, listener);
-    } else if (run instanceof MatrixBuild) {
-      aggregateResultsFromMatrixJob((MatrixBuild) run, testResults, listener);
+  private void aggregateResultsFromBuild(Run build, FlowTestResults testResults, BuildListener listener) throws ExecutionException, InterruptedException {
+    if (build == null) return;
+    if (build instanceof FlowRun) {
+      aggregateResultsFromFlowJob((FlowRun) build, testResults, listener);
+    } else if (build instanceof MultiJobBuild) {
+      aggregateResultsFromMultiJob((MultiJobBuild) build, testResults, listener);
+    } else if (build instanceof MatrixBuild) {
+      aggregateResultsFromMatrixJob((MatrixBuild) build, testResults, listener);
     } else {
-      addTestResultFromBuild(run, testResults, listener);
+      addTestResultFromBuild(build, testResults, listener);
+    }
+  }
+
+  private void aggregateResultsFromFlowJob(FlowRun build, FlowTestResults testResults, BuildListener listener) throws ExecutionException, InterruptedException {
+    listener.getLogger().println("Going to gather results from flow " + build);
+    for (JobInvocation jobInv : build.getJobsGraph().vertexSet()) {
+      if (!jobInv.getClass().getName().contains("Start")) {
+        aggregateResultsFromBuild(jobInv.getBuild(), testResults, listener);
+      }
     }
   }
 
   private void aggregateResultsFromMatrixJob(MatrixBuild run, FlowTestResults testResults, BuildListener listener) {
-    listener.getLogger().println("Going to gather results from matrix run " + run);
+    listener.getLogger().println("Going to gather results from matrix job " + run);
     for (MatrixRun matrixRun : run.getRuns()) {
       addTestResultFromBuild(matrixRun, testResults, listener);
     }
   }
 
-  private void aggregateResultsFromMultijob(MultiJobBuild multijob, FlowTestResults testResults, BuildListener listener) throws ExecutionException, InterruptedException {
+  private void aggregateResultsFromMultiJob(MultiJobBuild multijob, FlowTestResults testResults, BuildListener listener) throws ExecutionException, InterruptedException {
     listener.getLogger().println("Going to gather results from MultiJob " + multijob);
     // Results can be present at the MultiJob level as well
-    // (anyway it should not be duplicated = do not store the same results on the multijob parent and downstream builds)
+    // (anyway it should not be duplicated = do not store the same results on the MultiJob parent and downstream builds)
     addTestResultFromBuild(multijob, testResults, listener);
     for (MultiJobBuild.SubBuild subBuild : multijob.getSubBuilds()) {
       AbstractProject project = (AbstractProject) Jenkins.getInstance().getItem(subBuild.getJobName());
-      Run build = project.getBuildByNumber(subBuild.getBuildNumber());
-      if (build instanceof MultiJobBuild) {
-        aggregateResultsFromMultijob((MultiJobBuild) build, testResults, listener);
-      } else if (build instanceof FlowRun) {
-        aggregateResultsFromJobInvocation(((FlowRun) build).getStartJob(), testResults, listener);
-      } else {
-        addTestResultFromBuild(build, testResults, listener);
-      }
+      aggregateResultsFromBuild(project.getBuildByNumber(subBuild.getBuildNumber()), testResults, listener);
     }
   }
 
