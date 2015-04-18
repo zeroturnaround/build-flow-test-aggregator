@@ -17,3 +17,18 @@ To configure test aggregation you need to set the *"Flow run needs a workspace"*
 Then just enable the *"Aggregate build flow test results"* post-build action:
 
 <img src="http://cl.ly/image/3I2p213I3O3C/Image%202014-11-07%20at%201.21.02%20pm.png" />
+
+----
+
+# Changelog
+
+## Version 1.1 (Apr 18, 2015)
+
+* Fixed a NPE caused by not retrieving project by its full name
+* Test results are now shown by the builds' full name, enables seeing build parameters etc right from the results page
+* Added support for aggregating test results from MultiJob and matrix builds as well
+* Added support for recursively aggregating test results from started flow jobs and MultiJob-s
+
+## Version 1.0 (Nov 07, 2014)
+
+* Initial release of the plugin
