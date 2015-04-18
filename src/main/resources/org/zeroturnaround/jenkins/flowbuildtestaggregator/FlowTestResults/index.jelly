@@ -48,7 +48,7 @@ THE SOFTWARE.
             <td class="pane" style="text-align:right;">
               <!-- if only we have if..then..else in Jelly -->
               <j:if test="${report.result.failCount!=0}">
-                <a href="#${report.child.project.fullDisplayName}">${report.result.failCount}</a>
+                <a href="#${report.child.fullDisplayName}">${report.result.failCount}</a>
               </j:if>
               <j:if test="${report.result.failCount==0}">0</j:if>
 
@@ -68,8 +68,8 @@ THE SOFTWARE.
         <j:if test="${report.result.failCount!=0}">
 
           <h3>
-            <a name="${report.child.project.fullDisplayName}"/>
-            <a href="${rootURL}/${report.child.url}testReport">${report.child.project.fullDisplayName}</a>
+            <a name="${report.child.fullDisplayName}"/>
+            <a href="${rootURL}/${report.child.url}testReport">${report.child.fullDisplayName}</a>
           </h3>
 
           <table class="pane sortable">
