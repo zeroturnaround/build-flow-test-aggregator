@@ -3,6 +3,10 @@ package org.zeroturnaround.jenkins.flowbuildtestaggregator;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
+import com.tikal.jenkins.plugins.multijob.MultiJobBuild;
+import hudson.model.AbstractProject;
+import hudson.model.Run;
+import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.cloudbees.plugins.flow.BuildFlow;
@@ -35,16 +39,55 @@ public class FlowTestAggregator extends Recorder {
     flowRun.addAction(testResults);
     listener.getLogger().println("Starting to gather test results!");
     try {
-      for (JobInvocation jobInvocation : flowRun.getJobsGraph().vertexSet()) {
-        if (!jobInvocation.getClass().getName().contains("Start")) {
-          TestResultAction testResult = jobInvocation.getBuild().getAction(hudson.tasks.junit.TestResultAction.class);
-          if (testResult != null) testResults.add(testResult);
+      aggregateResultsFromJobInvocation(flowRun.getStartJob(), testResults, listener);
+    } catch (ExecutionException e) {
+      listener.getLogger().println("ERROR: " + e.getMessage());
+    }
+    listener.getLogger().println("Gathered results from " + testResults.getChildReports().size() + " jobs" );
+    return true;
+  }
+
+  private void aggregateResultsFromJobInvocation(JobInvocation jobInvocation, FlowTestResults testResults, BuildListener listener) throws ExecutionException, InterruptedException {
+    Run run = jobInvocation.getBuild();
+    if (run instanceof FlowRun) {
+      listener.getLogger().println("Going to gather results in flow " + run);
+      for (JobInvocation jobInv : ((FlowRun) run).getJobsGraph().vertexSet()) {
+        if (!jobInv.getClass().getName().contains("Start")) {
+          aggregateResultsFromJobInvocation(jobInv, testResults, listener);
         }
       }
-    } catch (ExecutionException e) {
-      listener.getLogger().print("ERROR: " + e.getMessage());
+    } else if (run instanceof MultiJobBuild) {
+      aggregateResultsFromMultijob((MultiJobBuild) run, testResults, listener);
+    } else {
+      addTestResultFromBuild(run, testResults, listener);
     }
-    return true;
+  }
+
+  private void aggregateResultsFromMultijob(MultiJobBuild multijob, FlowTestResults testResults, BuildListener listener) throws ExecutionException, InterruptedException {
+    listener.getLogger().println("Going to gather results from multijob " + multijob);
+    // Results can be present at the mutlijob level as well
+    // (anyway it should not be duplicated = do not store the same results on the multijob parent and downstream builds)
+    addTestResultFromBuild(multijob, testResults, listener);
+    // only results from first level SubBuilds are collected
+    for (MultiJobBuild.SubBuild subBuild : multijob.getSubBuilds()) {
+      AbstractProject project = (AbstractProject) Jenkins.getInstance().getItem(subBuild.getJobName());
+      Run build = project.getBuildByNumber(subBuild.getBuildNumber());
+      if (build instanceof MultiJobBuild) {
+        aggregateResultsFromMultijob((MultiJobBuild) build, testResults, listener);
+      } else if (build instanceof FlowRun) {
+        aggregateResultsFromJobInvocation(((FlowRun) build).getStartJob(), testResults, listener);
+      } else {
+        addTestResultFromBuild(build, testResults, listener);
+      }
+    }
+  }
+
+  private void addTestResultFromBuild(Run build, FlowTestResults testResults, BuildListener listener) {
+    TestResultAction testResult = build.getAction(hudson.tasks.junit.TestResultAction.class);
+    if (testResult != null) {
+      listener.getLogger().println("Adding test result for job " + build);
+      testResults.add(testResult);
+    }
   }
 
   @Extension
