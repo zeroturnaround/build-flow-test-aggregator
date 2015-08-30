@@ -4,11 +4,15 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 
 import com.tikal.jenkins.plugins.multijob.MultiJobBuild;
+
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixRun;
+import hudson.maven.MavenModuleSetBuild;
+import hudson.maven.reporters.SurefireAggregatedReport;
 import hudson.model.AbstractProject;
 import hudson.model.Run;
 import jenkins.model.Jenkins;
+
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.cloudbees.plugins.flow.BuildFlow;
@@ -18,12 +22,14 @@ import com.cloudbees.plugins.flow.JobInvocation;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
+import hudson.model.Action;
 import hudson.model.BuildListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.tasks.junit.TestResultAction;
+import hudson.tasks.test.AggregatedTestResultAction.Child;
 
 public class FlowTestAggregator extends Recorder {
 
@@ -57,6 +63,8 @@ public class FlowTestAggregator extends Recorder {
       aggregateResultsFromMultiJob((MultiJobBuild) build, testResults, listener);
     } else if (build instanceof MatrixBuild) {
       aggregateResultsFromMatrixJob((MatrixBuild) build, testResults, listener);
+    } else if (build instanceof MavenModuleSetBuild) {
+      aggregateResultsFromMavenMultiModuleJob(build, testResults, listener);
     } else {
       addTestResultFromBuild(build, testResults, listener);
     }
@@ -86,6 +94,18 @@ public class FlowTestAggregator extends Recorder {
     for (MultiJobBuild.SubBuild subBuild : multijob.getSubBuilds()) {
       AbstractProject project = (AbstractProject) Jenkins.getInstance().getItem(subBuild.getJobName());
       aggregateResultsFromBuild(project.getBuildByNumber(subBuild.getBuildNumber()), testResults, listener);
+    }
+  }
+
+  private void aggregateResultsFromMavenMultiModuleJob(Run<?, ?> build, FlowTestResults testResults, BuildListener listener) {
+    listener.getLogger().println("Going to gather results from Maven multi module job " + build);
+    SurefireAggregatedReport aggregatedTestReport = build.getAction(hudson.maven.reporters.SurefireAggregatedReport.class);
+    if (aggregatedTestReport != null) {
+      listener.getLogger().println("Adding test result for job " + build);
+      for (Child child : aggregatedTestReport.children) {
+        TestResultAction testResult = aggregatedTestReport.getChildReport(child);
+        testResults.add(testResult);
+      }
     }
   }
 
