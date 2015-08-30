@@ -41,9 +41,8 @@ public class FlowTestAggregator extends Recorder {
 
   @Override
   public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
-    FlowTestResults testResults = new FlowTestResults();
-    build.addAction(testResults);
     FlowRun flowRun = (FlowRun) build;
+    FlowTestResults testResults = new FlowTestResults();
     flowRun.addAction(testResults);
     listener.getLogger().println("Starting to gather test results!");
     try {
