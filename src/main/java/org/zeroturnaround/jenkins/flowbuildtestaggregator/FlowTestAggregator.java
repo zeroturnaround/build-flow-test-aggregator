@@ -1,6 +1,8 @@
 package org.zeroturnaround.jenkins.flowbuildtestaggregator;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 
 import com.tikal.jenkins.plugins.multijob.MultiJobBuild;
@@ -10,7 +12,9 @@ import hudson.matrix.MatrixRun;
 import hudson.maven.MavenModuleSetBuild;
 import hudson.maven.reporters.SurefireAggregatedReport;
 import hudson.model.AbstractProject;
+import hudson.model.Action;
 import hudson.model.Run;
+import hudson.tasks.test.TestResultProjectAction;
 import jenkins.model.Jenkins;
 
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -32,11 +36,21 @@ import hudson.tasks.test.AggregatedTestResultAction.Child;
 
 public class FlowTestAggregator extends Recorder {
 
+  public final boolean showTestResultTrend;
+
   @DataBoundConstructor
-  public FlowTestAggregator() {}
+  public FlowTestAggregator(boolean showTestResultTrend) {
+    this.showTestResultTrend = showTestResultTrend;
+  }
 
   public BuildStepMonitor getRequiredMonitorService() {
     return BuildStepMonitor.NONE;
+  }
+
+  @Override
+  public Collection<? extends Action> getProjectActions(AbstractProject<?, ?> project) {
+    if (showTestResultTrend) return Collections.<Action>singleton(new TestResultProjectAction(project));
+    return Collections.emptyList();
   }
 
   @Override
