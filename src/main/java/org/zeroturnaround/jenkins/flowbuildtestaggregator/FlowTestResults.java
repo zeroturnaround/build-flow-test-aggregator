@@ -19,7 +19,13 @@ public class FlowTestResults extends AggregatedTestResultAction {
 
   @Override
   public AbstractBuild<?, ?> resolveChild(Child child) {
-    return Jenkins.getInstance().getItemByFullName(child.name, AbstractProject.class).getBuildByNumber(child.build);
+    AbstractProject<?, ?> project = Jenkins.getInstance().getItemByFullName(child.name, AbstractProject.class);
+
+    if (project != null) {
+      return project.getBuildByNumber(child.build);
+    } else {
+      return null;
+    }
   }
 
   @Override
