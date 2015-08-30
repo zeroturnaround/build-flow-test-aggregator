@@ -31,10 +31,12 @@ public class ProjectRenameListener extends ItemListener {
     RunMap<FlowRun> builds = buildFlow._getRuns();
 
     for (FlowRun build : builds) {
-      AggregatedTestResultAction testResult = build.getAggregatedTestResultAction();
-      List<Child> renamedChildren = getRenamedChildBuilds(testResult, oldName, newName);
-      testResult.children.clear();
-      testResult.children.addAll(renamedChildren);
+      AggregatedTestResultAction testResult = build.getAction(FlowTestResults.class);
+      if (testResult != null) {
+        List<Child> renamedChildren = getRenamedChildBuilds(testResult, oldName, newName);
+        testResult.children.clear();
+        testResult.children.addAll(renamedChildren);
+      }
     }
   }
 
@@ -49,7 +51,7 @@ public class ProjectRenameListener extends ItemListener {
 
   private Child getRenamedChild(Child child, String oldName, String newName) {
     Child renamedChild = child;
-    if (child.name.startsWith(oldName)) {
+    if (child.name.split("/")[0].equals(oldName)) {
       String convertedName = child.name.replaceFirst(oldName, newName);
       renamedChild = new Child(convertedName, child.build);
     }
