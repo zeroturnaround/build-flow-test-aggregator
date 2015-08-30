@@ -8,10 +8,6 @@ import hudson.tasks.test.AggregatedTestResultAction;
 
 public class FlowTestResults extends AggregatedTestResultAction {
 
-  public FlowTestResults(AbstractBuild owner) {
-    super(owner);
-  }
-
   @Override
   protected String getChildName(AbstractTestResultAction tr) {
     return tr.owner.getProject().getFullName();
