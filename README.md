@@ -22,6 +22,13 @@ Then just enable the *"Aggregate build flow test results"* post-build action:
 
 # Changelog
 
+## Version 1.2 (Aug 31, 2015)
+
+* Added configurable test results trend chart
+* Added support for aggregating test results from Maven module builds
+* Fixed handling project renaming and deleting
+* Fixed direct links to failed tests on test results summary page
+
 ## Version 1.1 (Apr 18, 2015)
 
 * Fixed a NPE caused by not retrieving project by its full name
